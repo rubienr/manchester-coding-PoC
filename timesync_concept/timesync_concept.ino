@@ -25,13 +25,13 @@ typedef struct InitialCounterSettings {
 
 const InitialCounterSettings Counter1Settings = { //
         .top = 500, //
-        .receptionDelta = (Counter1Settings.top / 4) - 10, //
+        .receptionDelta = (Counter1Settings.top / 4) - 1, //
         .leftOfTop = Counter1Settings.top - Counter1Settings.receptionDelta, //
         .rightOfTop = Counter1Settings.receptionDelta,  //
         .center = Counter1Settings.top / 2, //
         .leftOfCenter = Counter1Settings.center - Counter1Settings.receptionDelta, //
         .rightOfCenter = Counter1Settings.center + Counter1Settings.receptionDelta, //
-        .syncCheck = Counter1Settings.center / 2, //
+        .syncCheck = Counter1Settings.center / 4, //
         // const uint8_t prescaler = (0 << CS12) | (0 << CS11) | (0 << CS10), // disconnected
         .prescaler = (0 << CS12) | (0 << CS11) | (1 << CS10), // clk/1
         // const uint8_t prescaler = (0 << CS12) | (1 << CS11) | (0 << CS10), // clk/8
@@ -98,20 +98,19 @@ ISR(PCINT2_vect) {
     // + synchronize counter
     if (isReceiving == 0) { // 4
         if (isRisingEdge == 0) { // 1
-            TCNT1 = 0; // 4
+            TCNT1 = 9; // 4
             PORTH |= (1 << PORTH4); // clk bit // 5
             PORTH |= (1 << PORTH3); // set sync bit // 5
             PORTD &= ~(1 << PORTD2); // unset data out // 2
         } else { // 2
             _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP(); // 8
             _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP(); // 8
-            _NOP();_NOP(); // 2
         }
         _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP(); // 8
         _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP(); // 8
         _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP(); // 8
         _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP(); // 8
-        _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP(); // 8
+        _NOP();_NOP();_NOP();_NOP();_NOP();
     }
 
     else { // receiving signal of a package // 2
@@ -119,17 +118,14 @@ ISR(PCINT2_vect) {
         // if signal occurs approx. at 1/2 of a package clock:
         // + the flank direction defines a data bit
         // + approximate new counter value
-        if ((Counter1Settings.leftOfCenter <= captureCounter) && // 6
-            (captureCounter <= Counter1Settings.rightOfCenter)) // 16
+        if ((Counter1Settings.leftOfCenter <= captureCounter) && // 8
+            (captureCounter <= Counter1Settings.rightOfCenter)) // 8
         {
             OCR1A = (Counter1Settings.top + (Counter1Settings.top + 2 * (captureCounter - Counter1Settings.center))) /
-                    2; // 19
-            uint16_t newB = OCR1A / 4; // 4
-            if (OCR1B < captureCounter) { // 2
-                OCR1B = newB; // 4
-            } else {// 2
-                _NOP();_NOP();_NOP();_NOP(); // 4
-            } // 2
+                    2; // 17
+            _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();
+            _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();
+            _NOP();_NOP();
 
             if (isRisingEdge == 0) { // 2
                 PORTD &= ~(1 << PORTD2); // 4
@@ -141,13 +137,10 @@ ISR(PCINT2_vect) {
             // + synchronize counter
         else // 2
         if ((Counter1Settings.leftOfTop <= captureCounter) || // 8
-            (captureCounter <= Counter1Settings.rightOfTop)) { // 9
-            TCNT1 = 0; // 4
+            (captureCounter <= Counter1Settings.rightOfTop)) { // 8
+            TCNT1 = 26; // 4
             PORTH ^= (1 << PORTH4); // 6
-            OCR1B = OCR1A / 4; // 12
-            _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();
-            _NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();_NOP();
-            _NOP();
+            OCR1B = OCR1A / 8; // 6
         } // 2
     } // 2
 
